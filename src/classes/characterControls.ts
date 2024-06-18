@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
 import { A, D, DIRECTIONS, S, W } from '../utils'
 
-export default class characterControls {
+export default class CharacterControls {
     model: THREE.Group
     mixer: THREE.AnimationMixer
     animationsMap: Map<string, THREE.AnimationAction> = new Map() // walk run idle

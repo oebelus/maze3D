@@ -1,0 +1,1 @@
+type Direction = 'right' | 'left' | 'back' | 'front'

@@ -2,7 +2,8 @@ import './style.css';
 import * as THREE from 'three';
 import Ground from './classes/Ground';
 import { OrbitControls, GLTFLoader } from 'three/examples/jsm/Addons.js';
-import CharacterControls from './classes/characterControls';
+import CharacterControls from './classes/CharacterControls';
+import Wall from './classes/Wall';
 
 let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer, model: THREE.Group | THREE.AnimationObjectGroup, mixer: THREE.AnimationMixer;
 const clock = new THREE.Clock();
@@ -65,10 +66,21 @@ loader.load('models/RobotExpressive.glb', (gltf) => {
 
 })
 
-const ground = new Ground(2000, 'white')
-ground.draw(scene)
+const groundWidth = 50
 
-const grid = new THREE.GridHelper( 200, 40, 0x000000, 0x000000 );
+const ground = new Ground(groundWidth, 'white')
+const leftWall = new Wall(groundWidth, 'left')
+const rightWall = new Wall(groundWidth, 'right')
+const frontWall = new Wall(groundWidth, 'front')
+const backWall = new Wall(groundWidth, 'back')
+
+ground.draw(scene)
+leftWall.draw(scene)
+rightWall.draw(scene)
+frontWall.draw(scene)
+backWall.draw(scene)
+
+const grid = new THREE.GridHelper( 50, 50, 0x000000, 0x000000 );
 grid.material.opacity = 0.2;
 grid.material.transparent = true;
 scene.add( grid );

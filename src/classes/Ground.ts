@@ -12,7 +12,6 @@ export default class Ground {
 
     draw(scene: THREE.Scene): void {
         this.plane.rotation.x = - Math.PI / 2
-        console.log(this.plane.position.x, this.plane)
         scene.add(this.plane)
     }
 }
