@@ -2,15 +2,18 @@ import './style.css';
 import * as THREE from 'three';
 import Ground from './classes/Ground';
 import { OrbitControls, GLTFLoader } from 'three/examples/jsm/Addons.js';
+import CharacterControls from './classes/characterControls';
 
-let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer, model: THREE.Object3D<THREE.Object3DEventMap> | THREE.AnimationObjectGroup, mixer: THREE.AnimationMixer, walkAction: THREE.AnimationAction, idleAction: THREE.AnimationAction;
+let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer, model: THREE.Group | THREE.AnimationObjectGroup, mixer: THREE.AnimationMixer;
 const clock = new THREE.Clock();
 
 const width = window.innerWidth;
 const height = window.innerHeight;
 
+/*
 const states = [ 'Idle', 'Walking', 'Running', 'Dance', 'Death', 'Sitting', 'Standing' ];
 const emotes = [ 'Jump', 'Yes', 'No', 'Wave', 'Punch', 'ThumbsUp' ];
+*/ 
 
 scene = new THREE.Scene();
 scene.background = new THREE.Color( 'silver' );
@@ -20,10 +23,11 @@ const light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 2.5 );
 light.position.set( 0.5, 1, 0.75 );
 scene.add( light );
 
-camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 camera.position.y = 5
 camera.position.z = 55
 camera.position.x = 0
+camera.lookAt( 0, 1, 0 );
 
 renderer = new THREE.WebGLRenderer();
 renderer.setSize(width, height);
@@ -42,25 +46,24 @@ controls.update()
 
 // Model
 
+let characterControls: CharacterControls; 
+
 const loader = new GLTFLoader();
 loader.load('models/RobotExpressive.glb', (gltf) => {
   model = gltf.scene
   scene.add(model)
 
+  const gltfAnimations: THREE.AnimationClip[] = gltf.animations;
   mixer = new THREE.AnimationMixer(model)
+  const animationMap: Map<string, THREE.AnimationAction> = new Map();
 
-  gltf.animations.forEach((clip) => {
-    const action = mixer.clipAction(clip)
-     
-    if (clip.name === 'Idle') {
-      idleAction = action
-      idleAction.play()
-    } else if (clip.name === 'Walking') {
-      walkAction = action
-    }
+  gltfAnimations.forEach((a: THREE.AnimationClip) => {
+    animationMap.set(a.name, mixer.clipAction(a))
   })
 
-}, undefined, (e) => console.error(e))
+  characterControls = new CharacterControls(model, mixer, animationMap, controls, camera, 'Idle')
+
+})
 
 const ground = new Ground(2000, 'white')
 ground.draw(scene)
@@ -72,27 +75,19 @@ scene.add( grid );
 
 // Keys
 
-const keysPressed = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false }
+let keysPressed: {[key: string]: boolean} = {}
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    keysPressed[event.key] = true;
-    console.log(keysPressed)
-    if (idleAction && !walkAction.isRunning()) {
-      idleAction.stop();
-      walkAction.play();
-    }
+  console.log(event.key)
+  if (event.shiftKey && characterControls) {
+    characterControls.switchToggle()
+  } else {
+    keysPressed[event.key] = true
   }
 }, false)
 
 document.addEventListener('keyup', (event) => {
-  if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    keysPressed[event.key] = false;
-    if (idleAction && !Object.values(keysPressed).includes(true)) {
-      walkAction.stop();
-      idleAction.play();
-    }
-  }
+  keysPressed[event.key] = false
 }, false)
 
 // Animate 
@@ -101,24 +96,11 @@ function animate() {
   requestAnimationFrame( animate );
 
   const delta = clock.getDelta();
-  if (mixer) mixer.update(delta)
 
-    if (model) {
-      if (keysPressed['ArrowRight']) {
-        (model as THREE.Object3D<THREE.Object3DEventMap>).rotation.y = 2; 
-        (model as THREE.Object3D<THREE.Object3DEventMap>).position.x += 0.025;
-      } else if (keysPressed['ArrowLeft']) {
-        (model as THREE.Object3D<THREE.Object3DEventMap>).rotation.y = -1;
-        (model as THREE.Object3D<THREE.Object3DEventMap>).position.x -= 0.025;
-      } else if (keysPressed['ArrowUp']) {
-        (model as THREE.Object3D<THREE.Object3DEventMap>).rotation.y = Math.PI;
-        (model as THREE.Object3D<THREE.Object3DEventMap>).position.z -= 0.025;
-      } else if (keysPressed['ArrowDown']) {
-        (model as THREE.Object3D<THREE.Object3DEventMap>).rotation.y = 0;
-        (model as THREE.Object3D<THREE.Object3DEventMap>).position.z += 0.025;
-      }
-    }
-
+  if (characterControls) {
+    characterControls.update(delta, keysPressed)
+  }
+  
   renderer.render(scene, camera);
 }
 
