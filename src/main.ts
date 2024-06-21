@@ -24,9 +24,9 @@ const light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 2.5 );
 light.position.set( 0.5, 1, 0.75 );
 scene.add( light );
 
-camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-camera.position.y = 5
-camera.position.z = 55
+camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
+camera.position.y = 20
+camera.position.z = 100
 camera.position.x = 0
 camera.lookAt( 0, 1, 0 );
 
@@ -68,11 +68,13 @@ loader.load('models/RobotExpressive.glb', (gltf) => {
 
 const groundWidth = 50
 
-const ground = new Ground(groundWidth, 'white')
+const ground = new Ground(groundWidth, 'sepia')
 const leftWall = new Wall(groundWidth, 'left')
 const rightWall = new Wall(groundWidth, 'right')
 const frontWall = new Wall(groundWidth, 'front')
 const backWall = new Wall(groundWidth, 'back')
+
+const walls =  [leftWall, rightWall, frontWall, backWall]
 
 ground.draw(scene)
 leftWall.draw(scene)
@@ -80,7 +82,7 @@ rightWall.draw(scene)
 frontWall.draw(scene)
 backWall.draw(scene)
 
-const grid = new THREE.GridHelper( 50, 50, 0x000000, 0x000000 );
+const grid = new THREE.GridHelper( groundWidth, groundWidth, 0x000000, 0x000000 );
 grid.material.opacity = 0.2;
 grid.material.transparent = true;
 scene.add( grid );
@@ -110,7 +112,7 @@ function animate() {
   const delta = clock.getDelta();
 
   if (characterControls) {
-    characterControls.update(delta, keysPressed)
+    characterControls.update(delta, keysPressed, ground, walls)
   }
   
   renderer.render(scene, camera);

@@ -1,17 +1,24 @@
 import * as THREE from 'three'
 
 export default class Wall {
-    private wall: THREE.Mesh
+    wall: THREE.Mesh
     private Width: number
     private direction
+    position: THREE.Vector3
 
-    constructor(width: number, direction: Direction, color?: string) {
+    constructor(width: number, direction: Direction) {
         this.Width = width
         this.direction = direction
 
         const geometry = new THREE.PlaneGeometry(width, width/2)
-        const material = new THREE.MeshBasicMaterial({ color: color || 'black', side: THREE.DoubleSide})
+        const texture = new THREE.TextureLoader().load('textures/wall.jpg')
+        const material = new THREE.MeshBasicMaterial({ 
+            side: THREE.DoubleSide,
+            map: texture,
+            transparent: true,
+        })
         this.wall = new THREE.Mesh(geometry, material)
+        this.position = this.wall.position
     }
     draw(scene: THREE.Scene) {
        switch (this.direction) {
