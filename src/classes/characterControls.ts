@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
 import { A, D, DIRECTIONS, S, W } from '../utils'
 import Ground from './Ground'
-import Wall from './Wall'
 
 export default class CharacterControls {
     model: THREE.Group
@@ -10,6 +9,7 @@ export default class CharacterControls {
     animationsMap: Map<string, THREE.AnimationAction> = new Map() // walk run idle
     orbitControl: OrbitControls
     camera: THREE.Camera
+    walls: THREE.Object3D<THREE.Object3DEventMap>[]
 
     // state
     toggleRun: boolean = false
@@ -26,7 +26,7 @@ export default class CharacterControls {
     runVelocity = 10
     walkVelocity = 5
 
-    constructor(model: THREE.Group, mixer: THREE.AnimationMixer, animationsMap: Map<string, THREE.AnimationAction> = new Map(), orbitControl: OrbitControls, camera: THREE.Camera, currentAction: string) {
+    constructor(model: THREE.Group, mixer: THREE.AnimationMixer, animationsMap: Map<string, THREE.AnimationAction> = new Map(), orbitControl: OrbitControls, camera: THREE.Camera, currentAction: string, walls: THREE.Object3D<THREE.Object3DEventMap>[]) {
         this.model = model
         this.mixer = mixer
         this.animationsMap = animationsMap
@@ -37,13 +37,14 @@ export default class CharacterControls {
         })
         this.orbitControl = orbitControl
         this.camera = camera
+        this.walls = walls
     }
 
     public switchToggle() {
         this.toggleRun = !this.toggleRun
     }
 
-    public update(delta: number, keysPressed: { [key: string]: boolean; }, ground: Ground, walls: Wall[]) {
+    public update(delta: number, keysPressed: { [key: string]: boolean; }, ground: Ground, raycaster: THREE.Raycaster) {
         const directionPressed = DIRECTIONS.some(key => keysPressed[key] == true)
 
         let play = '';
@@ -102,11 +103,6 @@ export default class CharacterControls {
                 this.model.position.x -= moveX
                 this.model.position.z -= moveZ
 
-                // console.log('WALLS', walls[2].position.z / 2, this.cameraTarget.z)
-                // if (walls[2].position.z / 2 < this.cameraTarget.z) {
-                //     walls[2].wall.material.opacity = 0
-                // }
-
                 if (this.cameraTarget.x < edge && this.cameraTarget.x > -edge && this.cameraTarget.z < edge && this.cameraTarget.z > -edge)
                     this.updateCameraTarget(moveX, moveZ)
                 else if (this.cameraTarget.x < edge && this.cameraTarget.x > -edge && (this.cameraTarget.z >= edge || this.cameraTarget.z <= -edge))
@@ -115,6 +111,22 @@ export default class CharacterControls {
                     this.updateCameraTarget(0, moveZ)
                 else
                     this.updateCameraTarget(0, 0)
+
+                const cameraWorldPosition = new THREE.Vector3()
+                const targetWorldPosition = new THREE.Vector3()
+
+                this.model.getWorldPosition(targetWorldPosition)
+                this.camera.getWorldPosition(cameraWorldPosition)
+
+                console.log(cameraWorldPosition, targetWorldPosition)
+
+                const dir = cameraWorldPosition.clone().sub(targetWorldPosition).normalize()
+
+                const maxDistance = cameraWorldPosition.distanceTo(targetWorldPosition)
+                raycaster.set(targetWorldPosition, dir)
+
+                this.raycast(raycaster, maxDistance)
+  
             }
             else {
                 if (this.model.position.x >= edge || this.model.position.x <= - edge) {
@@ -130,6 +142,27 @@ export default class CharacterControls {
                     this.updateCameraTarget(0, 0)
                 }
             }
+        }
+    }
+
+    //  Instead of iterating through all walls, you can exit the loop after finding the closest intersection
+    private raycast(raycaster: THREE.Raycaster, maxDistance: number) {
+        try {
+            const activeWalls = raycaster.intersectObjects(this.walls)
+            let closestWall: THREE.Intersection<THREE.Object3D<THREE.Object3DEventMap>> | undefined = undefined;
+
+            for (const wall of activeWalls) {
+                if (!closestWall || wall.distance < (closestWall as THREE.Intersection<THREE.Object3D<THREE.Object3DEventMap>>).distance) {
+                    closestWall = wall
+                }
+            }
+
+            if (closestWall) {
+                const isBlockingView = !!activeWalls && closestWall!.distance < maxDistance;
+                ((closestWall.object as THREE.Mesh).material as THREE.Material).opacity = isBlockingView ? 0.2 : 1
+            }
+        } catch (e) {
+            console.error('OOPS:', e)
         }
     }
 

@@ -10,7 +10,7 @@ export default class Wall {
         this.Width = width
         this.direction = direction
 
-        const geometry = new THREE.PlaneGeometry(width, width/2)
+        const geometry = new THREE.PlaneGeometry(width, width/4)
         const texture = new THREE.TextureLoader().load('textures/wall.jpg')
         const material = new THREE.MeshBasicMaterial({ 
             side: THREE.DoubleSide,
@@ -18,6 +18,7 @@ export default class Wall {
             transparent: true,
         })
         this.wall = new THREE.Mesh(geometry, material)
+        this.wall.position.y = 6; 
         this.position = this.wall.position
     }
     draw(scene: THREE.Scene) {

@@ -5,7 +5,7 @@ import { OrbitControls, GLTFLoader } from 'three/examples/jsm/Addons.js';
 import CharacterControls from './classes/CharacterControls';
 import Wall from './classes/Wall';
 
-let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer, model: THREE.Group | THREE.AnimationObjectGroup, mixer: THREE.AnimationMixer;
+let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer, model: THREE.Group | THREE.AnimationObjectGroup, mixer: THREE.AnimationMixer, raycaster: THREE.Raycaster;
 const clock = new THREE.Clock();
 
 const width = window.innerWidth;
@@ -45,6 +45,36 @@ controls.enablePan = false
 controls.maxPolarAngle = Math.PI / 2 - 0.05;
 controls.update()
 
+// Background
+
+const groundWidth = 50
+
+const ground = new Ground(groundWidth, 'white')
+const leftWall = new Wall(groundWidth, 'left')
+leftWall.wall.name = 'left'
+
+const rightWall = new Wall(groundWidth, 'right')
+rightWall.wall.name = 'right'
+
+const frontWall = new Wall(groundWidth, 'front')
+frontWall.wall.name = 'front'
+
+const backWall = new Wall(groundWidth, 'back')
+backWall.wall.name = 'back'
+
+const walls:THREE.Object3D<THREE.Object3DEventMap>[] =  [leftWall.wall, rightWall.wall, frontWall.wall, backWall.wall]
+
+ground.draw(scene)
+leftWall.draw(scene)
+rightWall.draw(scene)
+frontWall.draw(scene)
+backWall.draw(scene)
+
+const grid = new THREE.GridHelper( groundWidth, groundWidth, 0x000000, 0x000000 );
+grid.material.opacity = 0.2;
+grid.material.transparent = true;
+scene.add( grid );
+
 // Model
 
 let characterControls: CharacterControls; 
@@ -62,37 +92,14 @@ loader.load('models/RobotExpressive.glb', (gltf) => {
     animationMap.set(a.name, mixer.clipAction(a))
   })
 
-  characterControls = new CharacterControls(model, mixer, animationMap, controls, camera, 'Idle')
-
+  characterControls = new CharacterControls(model, mixer, animationMap, controls, camera, 'Idle', walls)
 })
-
-const groundWidth = 50
-
-const ground = new Ground(groundWidth, 'sepia')
-const leftWall = new Wall(groundWidth, 'left')
-const rightWall = new Wall(groundWidth, 'right')
-const frontWall = new Wall(groundWidth, 'front')
-const backWall = new Wall(groundWidth, 'back')
-
-const walls =  [leftWall, rightWall, frontWall, backWall]
-
-ground.draw(scene)
-leftWall.draw(scene)
-rightWall.draw(scene)
-frontWall.draw(scene)
-backWall.draw(scene)
-
-const grid = new THREE.GridHelper( groundWidth, groundWidth, 0x000000, 0x000000 );
-grid.material.opacity = 0.2;
-grid.material.transparent = true;
-scene.add( grid );
 
 // Keys
 
 let keysPressed: {[key: string]: boolean} = {}
 
 document.addEventListener('keydown', (event) => {
-  console.log(event.key)
   if (event.shiftKey && characterControls) {
     characterControls.switchToggle()
   } else {
@@ -105,6 +112,7 @@ document.addEventListener('keyup', (event) => {
 }, false)
 
 // Animate 
+raycaster = new THREE.Raycaster()
 
 function animate() {
   requestAnimationFrame( animate );
@@ -112,9 +120,9 @@ function animate() {
   const delta = clock.getDelta();
 
   if (characterControls) {
-    characterControls.update(delta, keysPressed, ground, walls)
+    characterControls.update(delta, keysPressed, ground, raycaster)
   }
-  
+
   renderer.render(scene, camera);
 }
 
